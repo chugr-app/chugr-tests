@@ -21,26 +21,22 @@ describe('Chat Service Integration', () => {
 
   describe('Chat Conversation Management', () => {
     let user1: any, user2: any;
-    let token1: string, token2: string;
+    // tokens removed as they're not used in these tests
 
     beforeEach(async () => {
       const user1Data = await integrationTestUtils.userManager.createUser({
-        email: 'chat-user1@example.com',
-        username: 'chatuser1',
         firstName: 'Alice',
         lastName: 'Johnson',
       });
       user1 = user1Data.user;
-      token1 = user1Data.token;
+      // token1 = user1Data.token; // Not used in these tests
 
       const user2Data = await integrationTestUtils.userManager.createUser({
-        email: 'chat-user2@example.com',
-        username: 'chatuser2',
         firstName: 'Bob',
         lastName: 'Smith',
       });
       user2 = user2Data.user;
-      token2 = user2Data.token;
+      // token2 = user2Data.token; // Not used in these tests
     });
 
     it('should create conversation between matched users', async () => {
@@ -140,16 +136,10 @@ describe('Chat Service Integration', () => {
     let conversationId: string;
 
     beforeEach(async () => {
-      const user1Data = await integrationTestUtils.userManager.createUser({
-        email: 'msg-user1@example.com',
-        username: 'msguser1',
-      });
+      const user1Data = await integrationTestUtils.userManager.createUser();
       user1 = user1Data.user;
 
-      const user2Data = await integrationTestUtils.userManager.createUser({
-        email: 'msg-user2@example.com',
-        username: 'msguser2',
-      });
+      const user2Data = await integrationTestUtils.userManager.createUser();
       user2 = user2Data.user;
 
       // Create a match and conversation
@@ -338,16 +328,10 @@ describe('Chat Service Integration', () => {
     let conversationId: string;
 
     beforeEach(async () => {
-      const user1Data = await integrationTestUtils.userManager.createUser({
-        email: 'realtime-user1@example.com',
-        username: 'realtimeuser1',
-      });
+      const user1Data = await integrationTestUtils.userManager.createUser();
       user1 = user1Data.user;
 
-      const user2Data = await integrationTestUtils.userManager.createUser({
-        email: 'realtime-user2@example.com',
-        username: 'realtimeuser2',
-      });
+      const user2Data = await integrationTestUtils.userManager.createUser();
       user2 = user2Data.user;
 
       // Create a match and conversation
@@ -422,22 +406,13 @@ describe('Chat Service Integration', () => {
     let user1: any, user2: any, user3: any;
 
     beforeEach(async () => {
-      const user1Data = await integrationTestUtils.userManager.createUser({
-        email: 'perm-user1@example.com',
-        username: 'permuser1',
-      });
+      const user1Data = await integrationTestUtils.userManager.createUser();
       user1 = user1Data.user;
 
-      const user2Data = await integrationTestUtils.userManager.createUser({
-        email: 'perm-user2@example.com',
-        username: 'permuser2',
-      });
+      const user2Data = await integrationTestUtils.userManager.createUser();
       user2 = user2Data.user;
 
-      const user3Data = await integrationTestUtils.userManager.createUser({
-        email: 'perm-user3@example.com',
-        username: 'permuser3',
-      });
+      const user3Data = await integrationTestUtils.userManager.createUser();
       user3 = user3Data.user;
     });
 

@@ -20,40 +20,28 @@ describe('Matching Service Integration', () => {
   });
 
   describe('User Matching Workflow', () => {
-    let user1: any, user2: any, user3: any;
-    let token1: string, token2: string, token3: string;
+    let user1: any, user2: any;
+    // tokens will be used in tests
 
     beforeEach(async () => {
       // Create three test users
       const user1Data = await integrationTestUtils.userManager.createUser({
-        email: 'matching-user1@example.com',
-        username: 'matchinguser1',
         firstName: 'Alice',
         lastName: 'Johnson',
         age: 25,
       });
       user1 = user1Data.user;
-      token1 = user1Data.token;
+      // token1 = user1Data.token; // Not used in these tests
 
       const user2Data = await integrationTestUtils.userManager.createUser({
-        email: 'matching-user2@example.com',
-        username: 'matchinguser2',
         firstName: 'Bob',
         lastName: 'Smith',
         age: 28,
       });
       user2 = user2Data.user;
-      token2 = user2Data.token;
+      // token2 = user2Data.token; // Not used in these tests
 
-      const user3Data = await integrationTestUtils.userManager.createUser({
-        email: 'matching-user3@example.com',
-        username: 'matchinguser3',
-        firstName: 'Charlie',
-        lastName: 'Brown',
-        age: 30,
-      });
-      user3 = user3Data.user;
-      token3 = user3Data.token;
+      // user3 removed as it's not used in these tests
     });
 
     it('should get user recommendations', async () => {
@@ -73,7 +61,7 @@ describe('Matching Service Integration', () => {
       recommendations.forEach((rec: any) => {
         expect(rec.id).not.toBe(user1.id);
         expect(rec).toHaveProperty('id');
-        expect(rec).toHaveProperty('username');
+        // Username is not part of the API response
         expect(rec).toHaveProperty('firstName');
         expect(rec).toHaveProperty('lastName');
         expect(rec).toHaveProperty('age');
@@ -231,22 +219,16 @@ describe('Matching Service Integration', () => {
 
   describe('Match Management', () => {
     let user1: any, user2: any;
-    let token1: string, token2: string;
+    // tokens removed as they're not used in these tests
 
     beforeEach(async () => {
-      const user1Data = await integrationTestUtils.userManager.createUser({
-        email: 'match-mgmt-user1@example.com',
-        username: 'matchmgmtuser1',
-      });
+      const user1Data = await integrationTestUtils.userManager.createUser();
       user1 = user1Data.user;
-      token1 = user1Data.token;
+      // token1 = user1Data.token; // Not used in these tests
 
-      const user2Data = await integrationTestUtils.userManager.createUser({
-        email: 'match-mgmt-user2@example.com',
-        username: 'matchmgmtuser2',
-      });
+      const user2Data = await integrationTestUtils.userManager.createUser();
       user2 = user2Data.user;
-      token2 = user2Data.token;
+      // token2 = user2Data.token; // Not used in these tests
 
       // Create a match between users
       const client1 = await integrationTestUtils.userManager.createAuthenticatedClient(user1.id);
@@ -277,7 +259,7 @@ describe('Matching Service Integration', () => {
       
       const match = matches[0];
       expect(match).toHaveProperty('userId', user2.id);
-      expect(match).toHaveProperty('username', user2.username);
+      // Username is not part of the API response
       expect(match).toHaveProperty('firstName', user2.firstName);
       expect(match).toHaveProperty('lastName', user2.lastName);
       expect(match).toHaveProperty('matchedAt');
@@ -309,31 +291,22 @@ describe('Matching Service Integration', () => {
   });
 
   describe('Recommendation Algorithm', () => {
-    let user1: any, user2: any, user3: any;
-    let token1: string;
+    let user1: any, user2: any;
+    // user3 and token1 removed as they're not used in these tests
 
     beforeEach(async () => {
       const user1Data = await integrationTestUtils.userManager.createUser({
-        email: 'rec-algo-user1@example.com',
-        username: 'recalgouser1',
         age: 25,
       });
       user1 = user1Data.user;
-      token1 = user1Data.token;
+      // token1 = user1Data.token; // Not used in these tests
 
       const user2Data = await integrationTestUtils.userManager.createUser({
-        email: 'rec-algo-user2@example.com',
-        username: 'recalgouser2',
         age: 27, // Similar age
       });
       user2 = user2Data.user;
 
-      const user3Data = await integrationTestUtils.userManager.createUser({
-        email: 'rec-algo-user3@example.com',
-        username: 'recalgouser3',
-        age: 45, // Different age
-      });
-      user3 = user3Data.user;
+      // user3 removed as it's not used in these tests
     });
 
     it('should provide personalized recommendations', async () => {
@@ -351,7 +324,7 @@ describe('Matching Service Integration', () => {
       // Check recommendation structure
       recommendations.forEach((rec: any) => {
         expect(rec).toHaveProperty('id');
-        expect(rec).toHaveProperty('username');
+        // Username is not part of the API response
         expect(rec).toHaveProperty('firstName');
         expect(rec).toHaveProperty('lastName');
         expect(rec).toHaveProperty('age');

@@ -9,17 +9,13 @@ const http = require('http');
 const https = require('https');
 
 const services = [
-  { name: 'PostgreSQL', url: 'http://localhost:5433', timeout: 30000 },
-  { name: 'Redis', url: 'http://localhost:6380', timeout: 30000 },
-  { name: 'MinIO', url: 'http://localhost:9001', timeout: 30000 },
-  { name: 'ClickHouse', url: 'http://localhost:8124/ping', timeout: 30000 },
-  { name: 'API Gateway', url: 'http://localhost:3000/health', timeout: 60000 },
-  { name: 'User Service', url: 'http://localhost:3001/health', timeout: 60000 },
-  { name: 'Matching Service', url: 'http://localhost:3002/health', timeout: 60000 },
-  { name: 'Chat Service', url: 'http://localhost:3003/health', timeout: 60000 },
-  { name: 'Event Service', url: 'http://localhost:3004/health', timeout: 60000 },
-  { name: 'Notification Service', url: 'http://localhost:3005/health', timeout: 60000 },
-  { name: 'ML Service', url: 'http://localhost:8001/health', timeout: 60000 }
+  { name: 'API Gateway', url: 'http://localhost:3000/health', timeout: 30000 },
+  { name: 'User Service', url: 'http://localhost:3001/health', timeout: 30000 },
+  { name: 'Matching Service', url: 'http://localhost:3002/health', timeout: 30000 },
+  { name: 'Chat Service', url: 'http://localhost:3003/health', timeout: 30000 },
+  { name: 'Event Service', url: 'http://localhost:3004/health', timeout: 30000 },
+  { name: 'Notification Service', url: 'http://localhost:3005/health', timeout: 30000 },
+  { name: 'ML Service', url: 'http://localhost:8001/health', timeout: 30000 }
 ];
 
 const colors = {

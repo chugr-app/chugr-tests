@@ -23,16 +23,12 @@ describe('Complete User Journey E2E', () => {
     it('should complete full user journey from registration to event participation', async () => {
       // Step 1: User Registration
       const user1Data = integrationTestUtils.dataFactory.createUser({
-        email: 'journey-user1@example.com',
-        username: 'journeyuser1',
         firstName: 'Alice',
         lastName: 'Johnson',
         age: 25,
       });
 
       const user2Data = integrationTestUtils.dataFactory.createUser({
-        email: 'journey-user2@example.com',
-        username: 'journeyuser2',
         firstName: 'Bob',
         lastName: 'Smith',
         age: 28,
@@ -64,11 +60,11 @@ describe('Complete User Journey E2E', () => {
       const user2Id = login2Response.data.data.user.id;
 
       // Step 3: Profile Setup
-      const profile1Client = new integrationTestUtils.httpClient.constructor();
-      profile1Client.defaultHeaders = { ...profile1Client.defaultHeaders, Authorization: `Bearer ${user1Token}` };
+      const profile1Client = new (integrationTestUtils.httpClient.constructor as any)();
+      (profile1Client as any).defaultHeaders = { ...(profile1Client as any).defaultHeaders, Authorization: `Bearer ${user1Token}` };
 
-      const profile2Client = new integrationTestUtils.httpClient.constructor();
-      profile2Client.defaultHeaders = { ...profile2Client.defaultHeaders, Authorization: `Bearer ${user2Token}` };
+      const profile2Client = new (integrationTestUtils.httpClient.constructor as any)();
+      (profile2Client as any).defaultHeaders = { ...(profile2Client as any).defaultHeaders, Authorization: `Bearer ${user2Token}` };
 
       const profile1Update = {
         bio: 'Love craft beer and meeting new people!',
@@ -261,12 +257,11 @@ describe('Complete User Journey E2E', () => {
     it('should handle user journey with multiple events and matches', async () => {
       // Create multiple users
       const users = [];
-      const tokens = [];
+      const tokens: string[] = [];
 
       for (let i = 0; i < 3; i++) {
         const userData = integrationTestUtils.dataFactory.createUser({
           email: `multi-user${i}@example.com`,
-          username: `multiuser${i}`,
           firstName: `User${i}`,
           lastName: 'Test',
           age: 25 + i,
@@ -286,9 +281,9 @@ describe('Complete User Journey E2E', () => {
       }
 
       // Create authenticated clients
-      const clients = users.map((user, index) => {
-        const client = new integrationTestUtils.httpClient.constructor();
-        client.defaultHeaders = { ...client.defaultHeaders, Authorization: `Bearer ${tokens[index]}` };
+      const clients = users.map((_user, index) => {
+        const client = new (integrationTestUtils.httpClient.constructor as any)();
+        (client as any).defaultHeaders = { ...(client as any).defaultHeaders, Authorization: `Bearer ${tokens[index]}` };
         return client;
       });
 
@@ -358,7 +353,6 @@ describe('Complete User Journey E2E', () => {
       // Create a user
       const userData = integrationTestUtils.dataFactory.createUser({
         email: 'error-user@example.com',
-        username: 'erroruser',
       });
 
       const registerResponse = await integrationTestUtils.httpClient.post('/api/v1/auth/register', userData);
@@ -371,10 +365,10 @@ describe('Complete User Journey E2E', () => {
       TestAssertions.assertSuccessResponse(loginResponse, 200);
 
       const token = loginResponse.data.data.token;
-      const userId = loginResponse.data.data.user.id;
+      // userId not used in this test
 
-      const client = new integrationTestUtils.httpClient.constructor();
-      client.defaultHeaders = { ...client.defaultHeaders, Authorization: `Bearer ${token}` };
+      const client = new (integrationTestUtils.httpClient.constructor as any)();
+      (client as any).defaultHeaders = { ...(client as any).defaultHeaders, Authorization: `Bearer ${token}` };
 
       // Test invalid operations
       // Try to swipe on non-existent user
@@ -397,8 +391,8 @@ describe('Complete User Journey E2E', () => {
       TestAssertions.assertErrorResponse(invalidMessageResponse, 404, 'CONVERSATION_NOT_FOUND');
 
       // Test with invalid token
-      const invalidClient = new integrationTestUtils.httpClient.constructor();
-      invalidClient.defaultHeaders = { ...invalidClient.defaultHeaders, Authorization: 'Bearer invalid-token' };
+      const invalidClient = new (integrationTestUtils.httpClient.constructor as any)();
+      (invalidClient as any).defaultHeaders = { ...(invalidClient as any).defaultHeaders, Authorization: 'Bearer invalid-token' };
 
       const invalidTokenResponse = await invalidClient.get('/api/v1/users/profile');
       TestAssertions.assertErrorResponse(invalidTokenResponse, 401, 'INVALID_TOKEN');

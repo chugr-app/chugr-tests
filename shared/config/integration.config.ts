@@ -17,34 +17,34 @@ export const integrationConfig = {
     mlService: 'http://localhost:8001',
   },
 
-  // Database configurations
+  // Database configurations (using existing backend services)
   databases: {
     postgres: {
       host: 'localhost',
-      port: 5433,
-      database: 'chugr_test',
-      username: 'test_user',
-      password: 'test_password',
-      url: 'postgresql://test_user:test_password@localhost:5433/chugr_test',
+      port: 5432,
+      database: 'chugr',
+      username: 'chugr_user',
+      password: 'chugr_password',
+      url: 'postgresql://chugr_user:chugr_password@localhost:5432/chugr',
     },
     redis: {
       host: 'localhost',
-      port: 6380,
-      url: 'redis://localhost:6380',
+      port: 6379,
+      url: 'redis://localhost:6379',
     },
     clickhouse: {
       host: 'localhost',
-      port: 8124,
-      database: 'chugr_test',
-      username: 'test_user',
-      password: 'test_password',
-      url: 'http://localhost:8124',
+      port: 8123,
+      database: 'chugr',
+      username: 'default',
+      password: '',
+      url: 'http://localhost:8123',
     },
     minio: {
       endpoint: 'localhost',
-      port: 9001,
-      accessKey: 'test_access_key',
-      secretKey: 'test_secret_key',
+      port: 9000,
+      accessKey: 'chugr_access_key',
+      secretKey: 'chugr_secret_key',
       useSSL: false,
     },
   },
@@ -84,26 +84,26 @@ export const integrationConfig = {
     validUser: {
       email: 'test@example.com',
       password: 'TestPassword123!',
-      username: 'testuser',
       firstName: 'Test',
       lastName: 'User',
       age: 25,
+      gender: 'FEMALE',
     },
     adminUser: {
       email: 'admin@example.com',
       password: 'AdminPassword123!',
-      username: 'admin',
       firstName: 'Admin',
       lastName: 'User',
       age: 30,
+      gender: 'MALE',
       role: 'admin',
     },
     secondUser: {
       email: 'test2@example.com',
       password: 'TestPassword123!',
-      username: 'testuser2',
       firstName: 'Test',
       lastName: 'User2',
+      gender: 'MALE',
       age: 28,
     },
   },
@@ -192,7 +192,8 @@ export function getServiceUrl(serviceName: keyof typeof integrationConfig.servic
 
 // Helper function to get database URL
 export function getDatabaseUrl(databaseName: keyof typeof integrationConfig.databases): string {
-  return integrationConfig.databases[databaseName].url;
+  const db = integrationConfig.databases[databaseName] as any;
+  return db.url || `${db.host}:${db.port}`;
 }
 
 // Helper function to get endpoint URL
@@ -200,8 +201,8 @@ export function getEndpointUrl(category: keyof typeof integrationConfig.endpoint
   const baseUrl = integrationConfig.services.apiGateway;
   const categoryEndpoints = integrationConfig.endpoints[category];
   
-  if (typeof categoryEndpoints === 'object' && categoryEndpoints[endpoint]) {
-    return `${baseUrl}${categoryEndpoints[endpoint]}`;
+  if (typeof categoryEndpoints === 'object' && (categoryEndpoints as any)[endpoint]) {
+    return `${baseUrl}${(categoryEndpoints as any)[endpoint]}`;
   }
   
   throw new Error(`Endpoint ${endpoint} not found in category ${category}`);

@@ -21,26 +21,22 @@ describe('Event Service Integration', () => {
 
   describe('Event Creation and Management', () => {
     let organizer: any, participant: any;
-    let organizerToken: string, participantToken: string;
+    // tokens removed as they're not used in these tests
 
     beforeEach(async () => {
       const organizerData = await integrationTestUtils.userManager.createUser({
-        email: 'event-organizer@example.com',
-        username: 'eventorganizer',
         firstName: 'Event',
         lastName: 'Organizer',
       });
       organizer = organizerData.user;
-      organizerToken = organizerData.token;
+      // organizerToken = organizerData.token; // Not used in these tests
 
       const participantData = await integrationTestUtils.userManager.createUser({
-        email: 'event-participant@example.com',
-        username: 'eventparticipant',
         firstName: 'Event',
         lastName: 'Participant',
       });
       participant = participantData.user;
-      participantToken = participantData.token;
+      // participantToken = participantData.token; // Not used in these tests
     });
 
     it('should create a new event', async () => {
@@ -203,22 +199,13 @@ describe('Event Service Integration', () => {
     let eventId: string;
 
     beforeEach(async () => {
-      const organizerData = await integrationTestUtils.userManager.createUser({
-        email: 'participation-organizer@example.com',
-        username: 'participationorganizer',
-      });
+      const organizerData = await integrationTestUtils.userManager.createUser();
       organizer = organizerData.user;
 
-      const participant1Data = await integrationTestUtils.userManager.createUser({
-        email: 'participation-user1@example.com',
-        username: 'participationuser1',
-      });
+      const participant1Data = await integrationTestUtils.userManager.createUser();
       participant1 = participant1Data.user;
 
-      const participant2Data = await integrationTestUtils.userManager.createUser({
-        email: 'participation-user2@example.com',
-        username: 'participationuser2',
-      });
+      const participant2Data = await integrationTestUtils.userManager.createUser();
       participant2 = participant2Data.user;
 
       // Create an event
@@ -318,10 +305,7 @@ describe('Event Service Integration', () => {
     let user: any;
 
     beforeEach(async () => {
-      const userData = await integrationTestUtils.userManager.createUser({
-        email: 'discovery-user@example.com',
-        username: 'discoveryuser',
-      });
+      const userData = await integrationTestUtils.userManager.createUser();
       user = userData.user;
 
       // Create multiple events
@@ -443,16 +427,10 @@ describe('Event Service Integration', () => {
     let eventId: string;
 
     beforeEach(async () => {
-      const organizerData = await integrationTestUtils.userManager.createUser({
-        email: 'notification-organizer@example.com',
-        username: 'notificationorganizer',
-      });
+      const organizerData = await integrationTestUtils.userManager.createUser();
       organizer = organizerData.user;
 
-      const participantData = await integrationTestUtils.userManager.createUser({
-        email: 'notification-participant@example.com',
-        username: 'notificationparticipant',
-      });
+      const participantData = await integrationTestUtils.userManager.createUser();
       participant = participantData.user;
 
       // Create an event
