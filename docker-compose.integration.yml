@@ -1,0 +1,272 @@
+version: '3.8'
+
+services:
+  # Test Databases
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: chugr-postgres-test
+    environment:
+      POSTGRES_DB: chugr_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d chugr_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chugr-test-network
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: chugr-redis-test
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_test_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - chugr-test-network
+
+  minio-test:
+    image: minio/minio:latest
+    container_name: chugr-minio-test
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: test_access_key
+      MINIO_ROOT_PASSWORD: test_secret_key
+      MINIO_DEFAULT_BUCKETS: chugr-test-files,chugr-test-avatars
+    ports:
+      - "9001:9000"  # API
+      - "9002:9001"  # Console
+    volumes:
+      - minio_test_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chugr-test-network
+
+  clickhouse-test:
+    image: clickhouse/clickhouse-server:latest
+    container_name: chugr-clickhouse-test
+    environment:
+      CLICKHOUSE_DB: chugr_test
+      CLICKHOUSE_USER: test_user
+      CLICKHOUSE_PASSWORD: test_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8124:8123"  # HTTP
+      - "9009:9009"  # Native
+    volumes:
+      - clickhouse_test_data:/var/lib/clickhouse
+      - ./scripts/init-clickhouse.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8124/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chugr-test-network
+
+  # Test Services (will be built from backend)
+  api-gateway-test:
+    build:
+      context: ../../backend/api-gateway
+      dockerfile: Dockerfile.dev
+    container_name: chugr-api-gateway-test
+    environment:
+      NODE_ENV: test
+      PORT: 3000
+      JWT_SECRET: test-jwt-secret-key
+      POSTGRES_URL: postgresql://test_user:test_password@postgres-test:5432/chugr_test
+      REDIS_URL: redis://redis-test:6379
+      USER_SERVICE_URL: http://user-service-test:3001
+      MATCHING_SERVICE_URL: http://matching-service-test:3002
+      CHAT_SERVICE_URL: http://chat-service-test:3003
+      EVENT_SERVICE_URL: http://event-service-test:3004
+      NOTIFICATION_SERVICE_URL: http://notification-service-test:3005
+      ML_SERVICE_URL: http://ml-service-test:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chugr-test-network
+
+  user-service-test:
+    build:
+      context: ../../backend/user-service
+      dockerfile: Dockerfile.dev
+    container_name: chugr-user-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3001
+      JWT_SECRET: test-jwt-secret-key
+      POSTGRES_URL: postgresql://test_user:test_password@postgres-test:5432/chugr_test
+      REDIS_URL: redis://redis-test:6379
+      MINIO_ENDPOINT: minio-test
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: test_access_key
+      MINIO_SECRET_KEY: test_secret_key
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      minio-test:
+        condition: service_healthy
+    networks:
+      - chugr-test-network
+
+  matching-service-test:
+    build:
+      context: ../../backend/matching-service
+      dockerfile: Dockerfile.dev
+    container_name: chugr-matching-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3002
+      POSTGRES_URL: postgresql://test_user:test_password@postgres-test:5432/chugr_test
+      REDIS_URL: redis://redis-test:6379
+      USER_SERVICE_URL: http://user-service-test:3001
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      user-service-test:
+        condition: service_healthy
+    networks:
+      - chugr-test-network
+
+  chat-service-test:
+    build:
+      context: ../../backend/chat-service
+      dockerfile: Dockerfile.dev
+    container_name: chugr-chat-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3003
+      POSTGRES_URL: postgresql://test_user:test_password@postgres-test:5432/chugr_test
+      REDIS_URL: redis://redis-test:6379
+      USER_SERVICE_URL: http://user-service-test:3001
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      user-service-test:
+        condition: service_healthy
+    networks:
+      - chugr-test-network
+
+  event-service-test:
+    build:
+      context: ../../backend/event-service
+      dockerfile: Dockerfile.dev
+    container_name: chugr-event-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3004
+      POSTGRES_URL: postgresql://test_user:test_password@postgres-test:5432/chugr_test
+      REDIS_URL: redis://redis-test:6379
+      USER_SERVICE_URL: http://user-service-test:3001
+      NOTIFICATION_SERVICE_URL: http://notification-service-test:3005
+    ports:
+      - "3004:3004"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      user-service-test:
+        condition: service_healthy
+    networks:
+      - chugr-test-network
+
+  notification-service-test:
+    build:
+      context: ../../backend/notification-service
+      dockerfile: Dockerfile.dev
+    container_name: chugr-notification-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3005
+      POSTGRES_URL: postgresql://test_user:test_password@postgres-test:5432/chugr_test
+      REDIS_URL: redis://redis-test:6379
+      USER_SERVICE_URL: http://user-service-test:3001
+    ports:
+      - "3005:3005"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      user-service-test:
+        condition: service_healthy
+    networks:
+      - chugr-test-network
+
+  ml-service-test:
+    build:
+      context: ../../backend/ml-service
+      dockerfile: Dockerfile.dev
+    container_name: chugr-ml-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 8001
+      CLICKHOUSE_URL: http://clickhouse-test:8123
+      CLICKHOUSE_DB: chugr_test
+      CLICKHOUSE_USER: test_user
+      CLICKHOUSE_PASSWORD: test_password
+    ports:
+      - "8001:8001"
+    depends_on:
+      clickhouse-test:
+        condition: service_healthy
+    networks:
+      - chugr-test-network
+
+volumes:
+  postgres_test_data:
+    driver: local
+  redis_test_data:
+    driver: local
+  minio_test_data:
+    driver: local
+  clickhouse_test_data:
+    driver: local
+
+networks:
+  chugr-test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
