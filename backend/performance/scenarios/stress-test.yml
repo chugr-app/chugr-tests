@@ -1,0 +1,123 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    # Gradual ramp-up
+    - duration: '1m'
+      arrivalRate: 5
+      name: 'Ramp-up start'
+    
+    - duration: '2m'
+      arrivalRate: 15
+      name: 'Ramp-up medium'
+    
+    - duration: '2m'
+      arrivalRate: 25
+      name: 'Ramp-up high'
+    
+    # Stress phase - beyond normal capacity
+    - duration: '5m'
+      arrivalRate: 50
+      name: 'Stress phase'
+    
+    # Peak stress
+    - duration: '3m'
+      arrivalRate: 100
+      name: 'Peak stress'
+    
+    # Recovery phase
+    - duration: '2m'
+      arrivalRate: 10
+      name: 'Recovery'
+
+  # More lenient thresholds for stress testing
+  ensure:
+    p95: 3000  # 95% of requests should complete within 3 seconds
+    p99: 5000  # 99% of requests should complete within 5 seconds
+    maxErrorRate: 5  # Maximum 5% error rate (higher tolerance for stress)
+
+  # Global variables
+  variables:
+    baseUrl: 'http://localhost:3000'
+    testUserEmail: 'stresstest@example.com'
+    testUserPassword: 'StressTest123!'
+
+  # Plugins for detailed monitoring
+  plugins:
+    metrics-by-endpoint: {}
+    publish-metrics:
+      - type: 'influxdb'
+        host: 'localhost'
+        port: 8086
+        database: 'artillery'
+
+scenarios:
+  # High-frequency health checks
+  - name: 'Health Check Stress'
+    weight: 30
+    flow:
+      - get:
+          url: '/health'
+          expect:
+            - statusCode: [200, 503]  # Accept service unavailable during stress
+
+  # Authentication stress
+  - name: 'Authentication Stress'
+    weight: 25
+    flow:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            email: '{{ testUserEmail }}'
+            password: '{{ testUserPassword }}'
+          expect:
+            - statusCode: [200, 401, 429, 503]  # Accept various responses during stress
+
+  # API Gateway info endpoint
+  - name: 'API Info Stress'
+    weight: 20
+    flow:
+      - get:
+          url: '/api/v1'
+          expect:
+            - statusCode: [200, 503]
+
+  # Simple GET requests
+  - name: 'Simple GET Stress'
+    weight: 15
+    flow:
+      - get:
+          url: '/api/v1/users'
+          headers:
+            Authorization: 'Bearer invalid-token'
+          expect:
+            - statusCode: [401, 429, 503]
+
+  # Complex operations (lower weight due to higher resource usage)
+  - name: 'Complex Operations Stress'
+    weight: 10
+    flow:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            email: '{{ testUserEmail }}'
+            password: '{{ testUserPassword }}'
+          capture:
+            - json: '$.data.token'
+              as: 'authToken'
+      
+      - post:
+          url: '/api/v1/events'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+          json:
+            title: 'Stress Test Event {{ $randomString() }}'
+            description: 'Event created during stress testing'
+            location:
+              latitude: 55.7558
+              longitude: 37.6176
+              address: 'Stress Test Address'
+            dateTime: '{{ $isoTimestamp }}'
+            maxParticipants: 5
+            category: 'stress-test'
+          expect:
+            - statusCode: [201, 429, 503]

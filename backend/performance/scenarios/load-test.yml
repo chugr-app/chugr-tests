@@ -1,0 +1,185 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    # Warm-up phase
+    - duration: '2m'
+      arrivalRate: 5
+      name: 'Warm-up'
+    
+    # Normal load phase
+    - duration: '5m'
+      arrivalRate: 10
+      name: 'Normal load'
+    
+    # Peak load phase
+    - duration: '3m'
+      arrivalRate: 20
+      name: 'Peak load'
+    
+    # Cool-down phase
+    - duration: '2m'
+      arrivalRate: 5
+      name: 'Cool-down'
+
+  # Performance thresholds
+  ensure:
+    p95: 1000  # 95% of requests should complete within 1 second
+    p99: 2000  # 99% of requests should complete within 2 seconds
+    maxErrorRate: 1  # Maximum 1% error rate
+
+  # Global variables
+  variables:
+    baseUrl: 'http://localhost:3000'
+    testUserEmail: 'loadtest@example.com'
+    testUserPassword: 'LoadTest123!'
+
+  # Plugins
+  plugins:
+    metrics-by-endpoint: {}
+
+scenarios:
+  # User registration and authentication
+  - name: 'User Registration Flow'
+    weight: 20
+    flow:
+      - post:
+          url: '/api/v1/auth/register'
+          json:
+            email: '{{ $randomString() }}@loadtest.com'
+            password: 'LoadTest123!'
+            username: 'loadtest{{ $randomString() }}'
+            firstName: 'Load'
+            lastName: 'Test'
+            age: 25
+          capture:
+            - json: '$.data.token'
+              as: 'authToken'
+            - json: '$.data.user.id'
+              as: 'userId'
+          expect:
+            - statusCode: 201
+
+  # User login
+  - name: 'User Login Flow'
+    weight: 30
+    flow:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            email: '{{ testUserEmail }}'
+            password: '{{ testUserPassword }}'
+          capture:
+            - json: '$.data.token'
+              as: 'authToken'
+          expect:
+            - statusCode: 200
+
+  # Profile operations
+  - name: 'Profile Operations'
+    weight: 15
+    flow:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            email: '{{ testUserEmail }}'
+            password: '{{ testUserPassword }}'
+          capture:
+            - json: '$.data.token'
+              as: 'authToken'
+      
+      - put:
+          url: '/api/v1/users/profile'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+          json:
+            location:
+              latitude: 55.7558
+              longitude: 37.6176
+              city: 'Moscow'
+              country: 'Russia'
+            preferences:
+              ageRange:
+                min: 21
+                max: 35
+              maxDistance: 10
+              interests: ['drinking', 'socializing']
+          expect:
+            - statusCode: 200
+
+  # Event operations
+  - name: 'Event Operations'
+    weight: 20
+    flow:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            email: '{{ testUserEmail }}'
+            password: '{{ testUserPassword }}'
+          capture:
+            - json: '$.data.token'
+              as: 'authToken'
+      
+      - post:
+          url: '/api/v1/events'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+          json:
+            title: 'Load Test Event {{ $randomString() }}'
+            description: 'Event created during load testing'
+            location:
+              latitude: 55.7558
+              longitude: 37.6176
+              address: 'Test Address, Moscow'
+            dateTime: '{{ $isoTimestamp }}'
+            maxParticipants: 10
+            category: 'drinking'
+            tags: ['load-test', 'social']
+          capture:
+            - json: '$.data.event.id'
+              as: 'eventId'
+          expect:
+            - statusCode: 201
+      
+      - get:
+          url: '/api/v1/events/{{ eventId }}'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+          expect:
+            - statusCode: 200
+
+  # Matching operations
+  - name: 'Matching Operations'
+    weight: 10
+    flow:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            email: '{{ testUserEmail }}'
+            password: '{{ testUserPassword }}'
+          capture:
+            - json: '$.data.token'
+              as: 'authToken'
+      
+      - get:
+          url: '/api/v1/matching/suggestions'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+          expect:
+            - statusCode: 200
+      
+      - get:
+          url: '/api/v1/matching/matches'
+          headers:
+            Authorization: 'Bearer {{ authToken }}'
+          expect:
+            - statusCode: 200
+
+  # Health check (should be fast)
+  - name: 'Health Check'
+    weight: 5
+    flow:
+      - get:
+          url: '/health'
+          expect:
+            - statusCode: 200
+            - hasProperty: 'data.status'
