@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "test:unit": "jest --testPathPattern=backend/unit",
+    "test:unit": "jest --testPathPattern=backend/unit --testEnvironment=node",
+    "test:unit:watch": "jest --testPathPattern=backend/unit --testEnvironment=node --watch",
+    "test:unit:coverage": "jest --testPathPattern=backend/unit --testEnvironment=node --coverage",
     "test:integration": "jest --testPathPattern=backend/integration",
     "test:e2e": "jest --testPathPattern=backend/e2e",
     "test:performance": "artillery run backend/performance/scenarios.yml",

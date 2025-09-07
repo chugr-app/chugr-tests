@@ -4,14 +4,48 @@ import { beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
 // Load environment variables
 config();
 
+// Mock external modules for unit tests
+jest.mock('jsonwebtoken', () => ({
+  sign: jest.fn().mockReturnValue('mock-jwt-token'),
+  verify: jest.fn().mockReturnValue({
+    userId: 'test-user-id',
+    email: 'test@example.com',
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  }),
+  decode: jest.fn().mockReturnValue({
+    userId: 'test-user-id',
+    email: 'test@example.com',
+  }),
+}));
+
+jest.mock('axios', () => ({
+  get: jest.fn().mockResolvedValue({
+    data: { success: true },
+    status: 200,
+    statusText: 'OK',
+  }),
+  post: jest.fn().mockResolvedValue({
+    data: { success: true },
+    status: 201,
+    statusText: 'Created',
+  }),
+}));
+
+jest.mock('fs', () => ({
+  readFile: jest.fn().mockResolvedValue('mock file content'),
+  writeFile: jest.fn().mockResolvedValue(undefined),
+  existsSync: jest.fn().mockReturnValue(true),
+}));
+
 // Global test setup
 beforeAll(async () => {
   // Setup global test environment
   console.log('🚀 Setting up test environment...');
   
   // Set test environment variables
-  process.env.NODE_ENV = 'test';
-  process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
+  process.env['NODE_ENV'] = 'test';
+  process.env['LOG_LEVEL'] = 'error'; // Reduce log noise during tests
   
   // Initialize test database connections if needed
   // await setupTestDatabases();
@@ -46,7 +80,7 @@ global.testUtils = {
         email: 'test@example.com',
         ...payload 
       },
-      process.env.JWT_SECRET || 'test-secret',
+      process.env['JWT_SECRET'] || 'test-secret',
       { expiresIn: '1h' }
     );
   },
@@ -108,14 +142,14 @@ expect.extend({
   toBeValidJWT(received: string) {
     try {
       const jwt = require('jsonwebtoken');
-      jwt.verify(received, process.env.JWT_SECRET || 'test-secret');
+      jwt.verify(received, process.env['JWT_SECRET'] || 'test-secret');
       return {
         message: () => `expected ${received} not to be a valid JWT`,
         pass: true,
       };
     } catch (error) {
       return {
-        message: () => `expected ${received} to be a valid JWT, but got error: ${error.message}`,
+        message: () => `expected ${received} to be a valid JWT, but got error: ${error instanceof Error ? error.message : String(error)}`,
         pass: false,
       };
     }
