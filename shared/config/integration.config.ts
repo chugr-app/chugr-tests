@@ -86,7 +86,7 @@ export const integrationConfig = {
       password: 'TestPassword123!',
       firstName: 'Test',
       lastName: 'User',
-      age: 25,
+      birthDate: '1999-01-01',
       gender: 'FEMALE',
     },
     adminUser: {
@@ -94,7 +94,7 @@ export const integrationConfig = {
       password: 'AdminPassword123!',
       firstName: 'Admin',
       lastName: 'User',
-      age: 30,
+      birthDate: '1994-01-01',
       gender: 'MALE',
       role: 'admin',
     },
@@ -104,7 +104,7 @@ export const integrationConfig = {
       firstName: 'Test',
       lastName: 'User2',
       gender: 'MALE',
-      age: 28,
+      birthDate: '1996-01-01',
     },
   },
 

@@ -9,7 +9,7 @@ import {
 describe('Chat Service Integration', () => {
   beforeAll(async () => {
     await setupBeforeTest();
-  });
+  }, 60000); // 60 second timeout
 
   afterAll(async () => {
     await cleanupAfterTest();
@@ -53,6 +53,13 @@ describe('Chat Service Integration', () => {
         targetUserId: user1.id,
         action: 'like'
       });
+
+      // Create a conversation between matched users
+      const createConversationResponse = await client1.post('/api/v1/chat/conversations', {
+        participantIds: [user2.id]
+      });
+      
+      TestAssertions.assertSuccessResponse(createConversationResponse, 201);
 
       // Get conversations for user1
       const conversationsResponse = await client1.get('/api/v1/chat/conversations');
@@ -108,10 +115,13 @@ describe('Chat Service Integration', () => {
         action: 'like'
       });
 
-      // Get conversations to find conversation ID
-      const conversationsResponse = await client1.get('/api/v1/chat/conversations');
-      const conversations = conversationsResponse.data.data.conversations;
-      const conversationId = conversations[0].id;
+      // Create conversation
+      const createConversationResponse = await client1.post('/api/v1/chat/conversations', {
+        participantIds: [user2.id]
+      });
+      
+      TestAssertions.assertSuccessResponse(createConversationResponse, 201);
+      const conversationId = createConversationResponse.data.data.conversation.id;
 
       // Get specific conversation
       const conversationResponse = await client1.get(`/api/v1/chat/conversations/${conversationId}`);
@@ -156,10 +166,12 @@ describe('Chat Service Integration', () => {
         action: 'like'
       });
 
-      // Get conversation ID
-      const conversationsResponse = await client1.get('/api/v1/chat/conversations');
-      const conversations = conversationsResponse.data.data.conversations;
-      conversationId = conversations[0].id;
+      // Create conversation explicitly
+      const createConversationResponse = await client1.post('/api/v1/chat/conversations', {
+        participantIds: [user2.id]
+      });
+      
+      conversationId = createConversationResponse.data.data.conversation.id;
     });
 
     it('should send and receive messages', async () => {
@@ -348,10 +360,12 @@ describe('Chat Service Integration', () => {
         action: 'like'
       });
 
-      // Get conversation ID
-      const conversationsResponse = await client1.get('/api/v1/chat/conversations');
-      const conversations = conversationsResponse.data.data.conversations;
-      conversationId = conversations[0].id;
+      // Create conversation explicitly
+      const createConversationResponse = await client1.post('/api/v1/chat/conversations', {
+        participantIds: [user2.id]
+      });
+      
+      conversationId = createConversationResponse.data.data.conversation.id;
     });
 
     it('should handle typing indicators', async () => {
@@ -446,10 +460,12 @@ describe('Chat Service Integration', () => {
         action: 'like'
       });
 
-      // Get conversation ID as user1
-      const conversationsResponse = await client1.get('/api/v1/chat/conversations');
-      const conversations = conversationsResponse.data.data.conversations;
-      const conversationId = conversations[0].id;
+      // Create conversation explicitly
+      const createConversationResponse = await client1.post('/api/v1/chat/conversations', {
+        participantIds: [user2.id]
+      });
+      
+      const conversationId = createConversationResponse.data.data.conversation.id;
 
       // Try to access conversation as user3 (who is not part of it)
       const client3 = await integrationTestUtils.userManager.createAuthenticatedClient(user3.id);

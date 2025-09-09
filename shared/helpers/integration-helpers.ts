@@ -77,15 +77,8 @@ export class TestUserManager {
       testUser.email = `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}@example.com`;
     }
     
-    // Remove fields that are not allowed in the API
-    const { age, ...cleanUserData } = testUser as any;
-    
-    // Convert age to birthDate if age is provided
-    if (age) {
-      const currentYear = new Date().getFullYear();
-      const birthYear = currentYear - age;
-      cleanUserData.birthDate = new Date(birthYear, 0, 1).toISOString();
-    }
+    // Use data as provided - should already have birthDate instead of age
+    const cleanUserData = testUser;
     
     // Register user
     const registerResponse = await this.httpClient.post('/api/v1/auth/register', cleanUserData);

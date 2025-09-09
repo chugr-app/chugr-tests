@@ -57,8 +57,10 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@types/express": "^5.0.3",
     "axios": "^1.5.0",
     "dotenv": "^16.3.1",
+    "express": "^5.1.0",
     "faker": "^6.6.6",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
@@ -70,7 +72,9 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "roots": ["<rootDir>/backend"],
+    "roots": [
+      "<rootDir>/backend"
+    ],
     "testMatch": [
       "**/__tests__/**/*.ts",
       "**/?(*.)+(spec|test).ts"
@@ -81,8 +85,14 @@
       "!backend/**/node_modules/**"
     ],
     "coverageDirectory": "reports/coverage",
-    "coverageReporters": ["text", "lcov", "html"],
-    "setupFilesAfterEnv": ["<rootDir>/shared/helpers/jest.setup.ts"],
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/shared/helpers/jest.setup.ts"
+    ],
     "testTimeout": 30000,
     "maxWorkers": 4
   }
