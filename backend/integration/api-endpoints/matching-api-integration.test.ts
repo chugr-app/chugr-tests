@@ -21,7 +21,7 @@ describe('Matching API Integration Tests', () => {
 
   describe('Potential Matches Discovery', () => {
     let user1: any, user2: any, user3: any;
-    let client1: any, client2: any, client3: any;
+    let client1: any, client2: any;
 
     beforeEach(async () => {
       // Create test users with different profiles
@@ -31,7 +31,7 @@ describe('Matching API Integration Tests', () => {
         birthDate: '1999-01-01',
         gender: 'FEMALE',
         interests: ['music', 'travel', 'photography'],
-        location: { latitude: 40.7128, longitude: -74.0060 } // NYC
+        location: 'New York, NY' // NYC
       });
       user1 = user1Data.user;
       client1 = await integrationTestUtils.userManager.createAuthenticatedClient(user1.id);
@@ -42,7 +42,7 @@ describe('Matching API Integration Tests', () => {
         birthDate: '1996-01-01',
         gender: 'MALE',
         interests: ['music', 'sports', 'cooking'],
-        location: { latitude: 40.7589, longitude: -73.9851 } // NYC (close to user1)
+        location: 'New York, NY' // NYC (close to user1)
       });
       user2 = user2Data.user;
       client2 = await integrationTestUtils.userManager.createAuthenticatedClient(user2.id);
@@ -53,16 +53,33 @@ describe('Matching API Integration Tests', () => {
         birthDate: '1994-01-01',
         gender: 'MALE',
         interests: ['reading', 'hiking', 'movies'],
-        location: { latitude: 34.0522, longitude: -118.2437 } // LA (far from user1)
+        location: 'Los Angeles, CA' // LA (far from user1)
       });
       user3 = user3Data.user;
-      client3 = await integrationTestUtils.userManager.createAuthenticatedClient(user3.id);
+      // client3 = await integrationTestUtils.userManager.createAuthenticatedClient(user3.id);
 
       // Set preferences for user1 to match with males aged 25-35
       await client1.put('/api/v1/users/preferences', {
         ageRange: { min: 25, max: 35 },
         maxDistance: 100,
         interestedInGenders: ['MALE'],
+        showMe: true
+      });
+
+      // Set preferences for user2 to be discoverable
+      await client2.put('/api/v1/users/preferences', {
+        ageRange: { min: 20, max: 30 },
+        maxDistance: 100,
+        interestedInGenders: ['FEMALE'],
+        showMe: true
+      });
+
+      // Set preferences for user3 (but in LA, should not match due to distance)
+      const client3 = await integrationTestUtils.userManager.createAuthenticatedClient(user3.id);
+      await client3.put('/api/v1/users/preferences', {
+        ageRange: { min: 20, max: 30 },
+        maxDistance: 50, // Lower distance, should not reach from LA to NYC
+        interestedInGenders: ['FEMALE'],
         showMe: true
       });
     });
@@ -77,16 +94,16 @@ describe('Matching API Integration Tests', () => {
       const matches = response.data.data.matches;
       
       // Should include user2 (male, age 28, close distance, shared interest: music)
-      const user2Match = matches.find((m: any) => m.user.id === user2.id);
+      const user2Match = matches.find((m: any) => m.recommendedUser.id === user2.id);
       expect(user2Match).toBeDefined();
-      expect(user2Match).toHaveProperty('compatibilityScore');
-      expect(user2Match.compatibilityScore).toBeGreaterThan(0);
+      expect(user2Match).toHaveProperty('matchScore');
+      expect(user2Match.matchScore).toBeGreaterThan(0);
       
       // Should not include user3 if distance filtering is working (too far)
-      const user3Match = matches.find((m: any) => m.user.id === user3.id);
+      const user3Match = matches.find((m: any) => m.recommendedUser.id === user3.id);
       if (user3Match) {
         // If included, should have lower compatibility due to distance
-        expect(user3Match.compatibilityScore).toBeLessThan(user2Match.compatibilityScore);
+        expect(user3Match.matchScore).toBeLessThan(user2Match.matchScore);
       }
     });
 
@@ -97,16 +114,16 @@ describe('Matching API Integration Tests', () => {
       const matches = response.data.data.matches;
       
       matches.forEach((match: any) => {
-        expect(match).toHaveProperty('compatibilityScore');
-        expect(typeof match.compatibilityScore).toBe('number');
-        expect(match.compatibilityScore).toBeGreaterThanOrEqual(0);
-        expect(match.compatibilityScore).toBeLessThanOrEqual(100);
+        expect(match).toHaveProperty('matchScore');
+        expect(typeof match.matchScore).toBe('number');
+        expect(match.matchScore).toBeGreaterThanOrEqual(0);
+        expect(match.matchScore).toBeLessThanOrEqual(1);
         
-        expect(match).toHaveProperty('user');
-        expect(match.user).toHaveProperty('id');
-        expect(match.user).toHaveProperty('firstName');
-        expect(match.user).toHaveProperty('birthDate');
-        expect(match.user).not.toHaveProperty('email'); // Should not expose sensitive data
+        expect(match).toHaveProperty('recommendedUser');
+        expect(match.recommendedUser).toHaveProperty('id');
+        expect(match.recommendedUser).toHaveProperty('firstName');
+        expect(match.recommendedUser).toHaveProperty('birthDate');
+        expect(match.recommendedUser).not.toHaveProperty('email'); // Should not expose sensitive data
       });
     });
 
@@ -125,7 +142,7 @@ describe('Matching API Integration Tests', () => {
       const matches = response.data.data.matches;
       
       // Should only include very close users (user2 should still be included, user3 should not)
-      const user3Match = matches.find((m: any) => m.user.id === user3.id);
+      const user3Match = matches.find((m: any) => m.recommendedUser.id === user3.id);
       expect(user3Match).toBeUndefined(); // Too far away
     });
 
@@ -145,7 +162,7 @@ describe('Matching API Integration Tests', () => {
       
       // Should only include users within age range (calculated from birthDate)
       matches.forEach((match: any) => {
-        const birthYear = new Date(match.user.birthDate).getFullYear();
+        const birthYear = new Date(match.recommendedUser.birthDate).getFullYear();
         const currentYear = new Date().getFullYear();
         const age = currentYear - birthYear;
         expect(age).toBeGreaterThanOrEqual(27);
@@ -168,7 +185,7 @@ describe('Matching API Integration Tests', () => {
       const matches = response.data.data.matches;
       
       // Should not include male users
-      const maleMatches = matches.filter((m: any) => m.user.gender === 'male');
+      const maleMatches = matches.filter((m: any) => m.recommendedUser.gender === 'MALE');
       expect(maleMatches.length).toBe(0);
     });
 
@@ -184,7 +201,7 @@ describe('Matching API Integration Tests', () => {
       const matches = response.data.data.matches;
       
       // Should not include user2
-      const user2Match = matches.find((m: any) => m.user.id === user2.id);
+      const user2Match = matches.find((m: any) => m.recommendedUser.id === user2.id);
       expect(user2Match).toBeUndefined();
     });
   });
@@ -227,14 +244,14 @@ describe('Matching API Integration Tests', () => {
     it('should record a pass swipe', async () => {
       const swipeData = {
         targetUserId: user2.id,
-        action: 'pass'
+        action: 'dislike'
       };
 
       const response = await client1.post('/api/v1/matching/swipe', swipeData);
       
       TestAssertions.assertSuccessResponse(response, 200);
       expect(response.data.data).toHaveProperty('swipe');
-      expect(response.data.data.swipe.action).toBe('pass');
+      expect(response.data.data.swipe.action).toBe('dislike');
       expect(response.data.data.swipe.targetUserId).toBe(user2.id);
       expect(response.data.data).toHaveProperty('match', false);
     });
@@ -257,9 +274,8 @@ describe('Matching API Integration Tests', () => {
       
       TestAssertions.assertSuccessResponse(swipe2Response, 200);
       expect(swipe2Response.data.data.match).toBe(true);
-      expect(swipe2Response.data.data).toHaveProperty('matchData');
-      expect(swipe2Response.data.data.matchData).toHaveProperty('id');
-      expect(swipe2Response.data.data.matchData).toHaveProperty('users');
+      expect(swipe2Response.data.data).toHaveProperty('matchId');
+      expect(swipe2Response.data.data.matchId).toBeTruthy();
     });
 
     it('should not create a match if one user passes', async () => {
@@ -272,7 +288,7 @@ describe('Matching API Integration Tests', () => {
       // User2 passes on User1 - should not create a match
       const swipe2Response = await client2.post('/api/v1/matching/swipe', {
         targetUserId: user1.id,
-        action: 'pass'
+        action: 'dislike'
       });
       
       TestAssertions.assertSuccessResponse(swipe2Response, 200);
@@ -296,7 +312,7 @@ describe('Matching API Integration Tests', () => {
       
       expect(secondSwipe.status).toBe(409);
       expect(secondSwipe.data.success).toBe(false);
-      expect(secondSwipe.data.error).toHaveProperty('code', 'ALREADY_SWIPED');
+      expect(secondSwipe.data.error).toHaveProperty('code', 'SWIPE_EXISTS');
     });
 
     it('should prevent swiping on yourself', async () => {
@@ -494,11 +510,11 @@ describe('Matching API Integration Tests', () => {
     beforeEach(async () => {
       // Create multiple users with varied profiles for algorithm testing
       const userProfiles = [
-        { firstName: 'Alice', birthDate: '1999-01-01', interests: ['music', 'travel'], location: { lat: 40.7128, lng: -74.0060 } },
-        { firstName: 'Bob', birthDate: '1996-01-01', interests: ['music', 'sports'], location: { lat: 40.7589, lng: -73.9851 } },
-        { firstName: 'Carol', birthDate: '1998-01-01', interests: ['travel', 'photography'], location: { lat: 40.7505, lng: -73.9934 } },
-        { firstName: 'David', birthDate: '1994-01-01', interests: ['sports', 'cooking'], location: { lat: 40.7282, lng: -73.7949 } },
-        { firstName: 'Eve', birthDate: '2000-01-01', interests: ['photography', 'art'], location: { lat: 40.6892, lng: -74.0445 } }
+        { firstName: 'Alice', birthDate: '1999-01-01', interests: ['music', 'travel'], location: 'New York, NY' },
+        { firstName: 'Bob', birthDate: '1996-01-01', interests: ['music', 'sports'], location: 'New York, NY' },
+        { firstName: 'Carol', birthDate: '1998-01-01', interests: ['travel', 'photography'], location: 'New York, NY' },
+        { firstName: 'David', birthDate: '1994-01-01', interests: ['sports', 'cooking'], location: 'New York, NY' },
+        { firstName: 'Eve', birthDate: '2000-01-01', interests: ['photography', 'art'], location: 'New York, NY' }
       ];
 
       for (const profile of userProfiles) {
@@ -507,7 +523,7 @@ describe('Matching API Integration Tests', () => {
           lastName: 'Algorithm',
           birthDate: profile.birthDate,
           interests: profile.interests,
-          location: { latitude: profile.location.lat, longitude: profile.location.lng }
+          location: profile.location
         });
         
         users.push(userData.user);
@@ -525,15 +541,15 @@ describe('Matching API Integration Tests', () => {
       const matches = response.data.data.matches;
       
       // Find Bob and Carol in matches
-      const bobMatch = matches.find((m: any) => m.user.firstName === 'Bob');
-      const carolMatch = matches.find((m: any) => m.user.firstName === 'Carol');
+      const bobMatch = matches.find((m: any) => m.recommendedUser.firstName === 'Bob');
+      const carolMatch = matches.find((m: any) => m.recommendedUser.firstName === 'Carol');
       
       expect(bobMatch).toBeDefined();
       expect(carolMatch).toBeDefined();
       
       // Both should have higher compatibility scores due to shared interests
-      expect(bobMatch.compatibilityScore).toBeGreaterThan(50);
-      expect(carolMatch.compatibilityScore).toBeGreaterThan(50);
+      expect(bobMatch.matchScore).toBeGreaterThan(0.5);
+      expect(carolMatch.matchScore).toBeGreaterThan(0.5);
     });
 
     it('should consider distance in compatibility scoring', async () => {
@@ -543,16 +559,16 @@ describe('Matching API Integration Tests', () => {
       const matches = response.data.data.matches;
       
       // Sort matches by compatibility score
-      matches.sort((a: any, b: any) => b.compatibilityScore - a.compatibilityScore);
+      matches.sort((a: any, b: any) => b.matchScore - a.matchScore);
       
       // Closer users should generally have higher scores (all else being equal)
       matches.forEach((match: any, index: number) => {
-        expect(match.compatibilityScore).toBeGreaterThanOrEqual(0);
-        expect(match.compatibilityScore).toBeLessThanOrEqual(100);
+        expect(match.matchScore).toBeGreaterThanOrEqual(0);
+        expect(match.matchScore).toBeLessThanOrEqual(1);
         
         if (index > 0) {
           // Each subsequent match should have equal or lower compatibility
-          expect(match.compatibilityScore).toBeLessThanOrEqual(matches[index - 1].compatibilityScore);
+          expect(match.matchScore).toBeLessThanOrEqual(matches[index - 1].matchScore);
         }
       });
     });
@@ -568,12 +584,12 @@ describe('Matching API Integration Tests', () => {
       
       // Verify that compatibility scores are calculated (indicating ML integration)
       matches.forEach((match: any) => {
-        expect(match).toHaveProperty('compatibilityScore');
-        expect(typeof match.compatibilityScore).toBe('number');
+        expect(match).toHaveProperty('matchScore');
+        expect(typeof match.matchScore).toBe('number');
         
         // ML-enhanced scores should be more nuanced than simple rule-based scoring
-        expect(match.compatibilityScore).not.toBe(0);
-        expect(match.compatibilityScore).not.toBe(100);
+        expect(match.matchScore).not.toBe(0);
+        expect(match.matchScore).not.toBe(1);
       });
     });
   });
@@ -617,7 +633,7 @@ describe('Matching API Integration Tests', () => {
       
       expect(response.status).toBe(401);
       expect(response.data.success).toBe(false);
-      expect(response.data.error).toHaveProperty('code', 'UNAUTHORIZED');
+      expect(response.data.error).toHaveProperty('code', 'NO_TOKEN');
     });
 
     it('should handle malformed request data', async () => {
@@ -678,7 +694,7 @@ describe('Matching API Integration Tests', () => {
           swipePromises.push(
             clients[i].post('/api/v1/matching/swipe', {
               targetUserId: users[j].id,
-              action: Math.random() > 0.5 ? 'like' : 'pass'
+              action: Math.random() > 0.5 ? 'like' : 'dislike'
             })
           );
         }

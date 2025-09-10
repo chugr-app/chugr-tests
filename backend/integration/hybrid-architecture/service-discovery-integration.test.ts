@@ -168,7 +168,7 @@ describe('Service Discovery and Circuit Breakers Integration', () => {
   describe('Load Balancing and Failover', () => {
     it('should distribute load across available service instances', async () => {
       // Create multiple users to generate load
-      const userPromises = Array.from({ length, 20 }, (_, i) =>
+      const userPromises = Array.from({ length: 20 }, (_, i) =>
         integrationTestUtils.userManager.createUser({
           firstName: `Load${i}`,
           lastName: 'Test',
@@ -428,24 +428,30 @@ describe('Service Discovery and Circuit Breakers Integration', () => {
       const operations = [];
 
       // Profile requests (User Service)
-      for (let i = 0; i < 10; i++) {
-        operations.push(clients[i].get('/api/v1/users/profile'));
+      for (let i = 0; i < Math.min(10, clients.length); i++) {
+        if (clients[i]) {
+          operations.push(clients[i]!.get('/api/v1/users/profile'));
+        }
       }
 
       // Swipe operations (Matching Service)
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < Math.min(10, clients.length); i++) {
         const targetIndex = (i + 1) % userData.length;
-        operations.push(
-          clients[i].post('/api/v1/matching/swipe', {
-            targetUserId: userData[targetIndex].user.id,
-            action: 'like'
-          })
-        );
+        if (clients[i] && userData[targetIndex]) {
+          operations.push(
+            clients[i]!.post('/api/v1/matching/swipe', {
+              targetUserId: userData[targetIndex].user.id,
+              action: 'like'
+            })
+          );
+        }
       }
 
       // Notification requests (Notification Service)
-      for (let i = 0; i < 10; i++) {
-        operations.push(clients[i].get('/api/v1/notifications'));
+      for (let i = 0; i < Math.min(10, clients.length); i++) {
+        if (clients[i]) {
+          operations.push(clients[i]!.get('/api/v1/notifications'));
+        }
       }
 
       const startTime = Date.now();

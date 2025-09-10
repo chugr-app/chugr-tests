@@ -66,7 +66,7 @@ export class TestUserManager {
   private users: Map<string, any> = new Map();
 
   constructor() {
-    this.httpClient = new IntegrationHttpClient();
+    this.httpClient = new IntegrationHttpClient(integrationConfig.services.apiGateway);
   }
 
   async createUser(userData: any = {}): Promise<{ user: any; token: string }> {
@@ -115,7 +115,7 @@ export class TestUserManager {
 
   async createAuthenticatedClient(userId: string): Promise<IntegrationHttpClient> {
     const token = await this.getUserToken(userId);
-    const client = new IntegrationHttpClient();
+    const client = new IntegrationHttpClient(integrationConfig.services.apiGateway);
     (client as any).defaultHeaders = createTestHeaders(token);
     return client;
   }
@@ -224,7 +224,7 @@ export class ServiceHealthChecker {
   public httpClient: IntegrationHttpClient;
 
   constructor() {
-    this.httpClient = new IntegrationHttpClient();
+    this.httpClient = new IntegrationHttpClient(integrationConfig.services.apiGateway);
   }
 
   async checkAllServices(): Promise<{ [serviceName: string]: boolean }> {
@@ -303,7 +303,7 @@ export class TestAssertions {
 
 // Global test utilities
 export const integrationTestUtils = {
-  httpClient: new IntegrationHttpClient(),
+  httpClient: new IntegrationHttpClient(integrationConfig.services.apiGateway),
   userManager: new TestUserManager(),
   databaseHelper: new DatabaseHelper(),
   dataFactory: TestDataFactory,

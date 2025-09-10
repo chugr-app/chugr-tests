@@ -88,6 +88,7 @@ export const integrationConfig = {
       lastName: 'User',
       birthDate: '1999-01-01',
       gender: 'FEMALE',
+      location: 'New York, NY',
     },
     adminUser: {
       email: 'admin@example.com',
@@ -97,6 +98,7 @@ export const integrationConfig = {
       birthDate: '1994-01-01',
       gender: 'MALE',
       role: 'admin',
+      location: 'Los Angeles, CA',
     },
     secondUser: {
       email: 'test2@example.com',
@@ -105,6 +107,7 @@ export const integrationConfig = {
       lastName: 'User2',
       gender: 'MALE',
       birthDate: '1996-01-01',
+      location: 'Chicago, IL',
     },
   },
 

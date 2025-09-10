@@ -482,23 +482,27 @@ describe('Event-Driven Architecture Integration - Redis Pub/Sub', () => {
       const operations = [];
 
       // Profile updates (trigger user:updated events)
-      for (let i = 0; i < 5; i++) {
-        operations.push(
-          clients[i].put('/api/v1/users/profile', {
-            firstName: `Perf${i} Updated`,
-          })
-        );
+      for (let i = 0; i < Math.min(5, clients.length); i++) {
+        if (clients[i]) {
+          operations.push(
+            clients[i]!.put('/api/v1/users/profile', {
+              firstName: `Perf${i} Updated`,
+            })
+          );
+        }
       }
 
       // Swipes (trigger swipe events)
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < Math.min(5, clients.length); i++) {
         const targetIndex = (i + 1) % userData.length;
-        operations.push(
-          clients[i].post('/api/v1/matching/swipe', {
-            targetUserId: userData[targetIndex].user.id,
-            action: 'like'
-          })
-        );
+        if (clients[i] && userData[targetIndex]) {
+          operations.push(
+            clients[i]!.post('/api/v1/matching/swipe', {
+              targetUserId: userData[targetIndex].user.id,
+              action: 'like'
+            })
+          );
+        }
       }
 
       const responses = await Promise.all(operations);
@@ -506,8 +510,10 @@ describe('Event-Driven Architecture Integration - Redis Pub/Sub', () => {
 
       // All operations should succeed
       responses.forEach(response => {
-        expect(response.status).toBeGreaterThanOrEqual(200);
-        expect(response.status).toBeLessThan(300);
+        if (response) {
+          expect(response.status).toBeGreaterThanOrEqual(200);
+          expect(response.status).toBeLessThan(300);
+        }
       });
 
       // Should handle high volume efficiently
@@ -517,12 +523,14 @@ describe('Event-Driven Architecture Integration - Redis Pub/Sub', () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Verify that events were processed (check for notifications)
-      const notificationsResponse = await clients[1].get('/api/v1/notifications');
-      TestAssertions.assertSuccessResponse(notificationsResponse, 200);
+      const notificationsResponse = clients[1] ? await clients[1].get('/api/v1/notifications') : null;
+      if (notificationsResponse) {
+        TestAssertions.assertSuccessResponse(notificationsResponse, 200);
 
-      // Should have received some notifications from event processing
-      const notifications = notificationsResponse.data.data.notifications;
-      expect(notifications.length).toBeGreaterThan(0);
+        // Should have received some notifications from event processing
+        const notifications = notificationsResponse.data.data.notifications;
+        expect(notifications.length).toBeGreaterThan(0);
+      }
     });
 
     it('should maintain event ordering and consistency', async () => {

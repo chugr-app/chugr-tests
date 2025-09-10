@@ -59,11 +59,11 @@ describe('Database Integration Tests', () => {
       TestAssertions.assertSuccessResponse(matchesResponse, 200);
 
       const matches = matchesResponse.data.data.matches;
-      const user1Match = matches.find((m: any) => m.user.id === user1.id);
+      const user1Match = matches.find((m: any) => m.recommendedUser.id === user1.id);
 
       if (user1Match) {
-        expect(user1Match.user.firstName).toBe(updateData.firstName);
-        expect(user1Match.user.lastName).toBe(updateData.lastName);
+        expect(user1Match.recommendedUser.firstName).toBe(updateData.firstName);
+        expect(user1Match.recommendedUser.lastName).toBe(updateData.lastName);
       }
     });
 
@@ -423,7 +423,7 @@ describe('Database Integration Tests', () => {
       const conversations = await Promise.all(conversationPromises);
 
       // Send multiple messages in each conversation
-      const messagePromises = [];
+      const messagePromises: Promise<any>[] = [];
       conversations.forEach((convResponse, index) => {
         if (convResponse.status === 201) {
           const conversationId = convResponse.data.data.conversation.id;
