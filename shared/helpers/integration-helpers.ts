@@ -69,7 +69,7 @@ export class TestUserManager {
     this.httpClient = new IntegrationHttpClient(integrationConfig.services.apiGateway);
   }
 
-  async createUser(userData: any = {}): Promise<{ user: any; token: string }> {
+  async createUser(userData: any = {}): Promise<{ user: any; token: string; refreshToken: string }> {
     const testUser = generateTestData(integrationConfig.testUsers.validUser, userData);
     
     // Make email unique to avoid conflicts
@@ -98,11 +98,12 @@ export class TestUserManager {
     }
 
     const token = loginResponse.data.data.tokens.accessToken;
+    const refreshToken = loginResponse.data.data.tokens.refreshToken;
     const user = { ...testUser, id: loginResponse.data.data.user.id };
 
-    this.users.set(user.id, { user, token });
+    this.users.set(user.id, { user, token, refreshToken });
     
-    return { user, token };
+    return { user, token, refreshToken };
   }
 
   async getUserToken(userId: string): Promise<string> {
