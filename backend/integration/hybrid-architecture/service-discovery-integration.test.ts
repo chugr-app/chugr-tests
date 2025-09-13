@@ -27,42 +27,58 @@ describe('Service Discovery and Circuit Breakers Integration', () => {
 
       const healthData = healthResponse.data.data;
       expect(healthData).toHaveProperty('status', 'healthy');
-      expect(healthData).toHaveProperty('dependencies');
+      expect(healthData).toHaveProperty('services');
 
       // All services should be discovered and healthy
-      const dependencies = healthData.dependencies;
-      expect(dependencies).toHaveProperty('userService', 'healthy');
-      expect(dependencies).toHaveProperty('matchingService', 'healthy');
-      expect(dependencies).toHaveProperty('chatService', 'healthy');
-      expect(dependencies).toHaveProperty('eventService', 'healthy');
-      expect(dependencies).toHaveProperty('notificationService', 'healthy');
+      const services = healthData.services;
+      expect(Array.isArray(services)).toBe(true);
+      expect(services.length).toBeGreaterThan(0);
+      
+      // Check that all expected services are present and healthy
+      const serviceNames = services.map((s: any) => s.name);
+      expect(serviceNames).toContain('user-service');
+      expect(serviceNames).toContain('matching-service');
+      expect(serviceNames).toContain('chat-service');
+      expect(serviceNames).toContain('event-service');
+      expect(serviceNames).toContain('notification-service');
+      
+      // All services should be healthy
+      services.forEach((service: any) => {
+        expect(service.status).toBe('healthy');
+      });
     });
 
     it('should route requests to correct services based on endpoints', async () => {
-      // Create a test user to verify routing
+      // Create a test user to verify routing with unique data
+      const timestamp = Date.now();
       const userData = await integrationTestUtils.userManager.createUser({
-        firstName: 'Service',
-        lastName: 'Discovery',
+        firstName: `Service${timestamp}`,
+        lastName: `Discovery${timestamp}`,
+        email: `service_discovery_${timestamp}@test.com`,
       });
 
       const client = await integrationTestUtils.userManager.createAuthenticatedClient(userData.user.id);
 
       // Test routing to User Service
+      console.log('Testing User Service routing...');
       const userResponse = await client.get('/api/v1/users/profile');
       TestAssertions.assertSuccessResponse(userResponse, 200);
       expect(userResponse.data.data).toHaveProperty('id', userData.user.id);
 
       // Test routing to Matching Service
+      console.log('Testing Matching Service routing...');
       const potentialMatchesResponse = await client.get('/api/v1/matching/potential-matches');
       TestAssertions.assertSuccessResponse(potentialMatchesResponse, 200);
       expect(potentialMatchesResponse.data.data).toHaveProperty('matches');
 
       // Test routing to Notification Service
-      const notificationsResponse = await client.get('/api/v1/notifications');
+      console.log('Testing Notification Service routing...');
+      const notificationsResponse = await client.get('/api/v1/notifications/user');
       TestAssertions.assertSuccessResponse(notificationsResponse, 200);
       expect(notificationsResponse.data.data).toHaveProperty('notifications');
 
       // Test routing to Event Service
+      console.log('Testing Event Service routing...');
       const eventsResponse = await client.get('/api/v1/events');
       TestAssertions.assertSuccessResponse(eventsResponse, 200);
       expect(eventsResponse.data.data).toHaveProperty('events');

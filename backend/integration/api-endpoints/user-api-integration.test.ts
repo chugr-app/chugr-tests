@@ -455,9 +455,9 @@ describe('User API Integration Tests', () => {
     it('should handle unauthorized access', async () => {
       const response = await integrationTestUtils.httpClient.get('/api/v1/users/profile');
       
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(401);
       expect(response.data.success).toBe(false);
-      expect(response.data.error).toHaveProperty('code', 'USER_NOT_FOUND');
+      expect(response.data.error).toHaveProperty('code', 'NO_TOKEN');
     });
 
     it('should handle invalid user ID in requests', async () => {
